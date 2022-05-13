@@ -28,17 +28,29 @@ public class BatchConfiguration {
     private JobBuilderFactory jobBuilderFactory;     //Un Job are Reader , Processor si Writer
 
     @Autowired
-    EntityManagerFactory emf; //Il folosim la Writerul de JPA sa scriem baza de date
+    EntityManagerFactory emf; //Il folosim la Writerul de JPA(JpaItemWriter linia 37) sa scriem baza de date
 
     @Autowired
     private StepBuilderFactory stepBuilderFactory;
 
     @Bean
-    public Job readCSVFilesJob() {
-        return jobBuilderFactory
-                .get("readCSVFilesJob")
-                .incrementer(new RunIdIncrementer())
-                .start(step1())
+    public JpaItemWriter<Record> writer() {
+        JpaItemWriterBuilder<Record> builder = new JpaItemWriterBuilder();
+        builder.entityManagerFactory(emf);
+        return builder.build();
+    }
+
+    @Bean
+    public FlatFileItemReader<Record> reader() {
+        return new FlatFileItemReaderBuilder<Record>()
+                .name("recordItemReader") // Acest nume se va regasi in fiecare rulare a datelor
+                .resource(new ClassPathResource("input.csv")) // Aici ii dam numele fisierului in care se regasesc datele
+                .delimited() // Metoda le delimiteze dupa " , "
+                .names(new String[]{"cmplnt_num", "cmplnt_fr_dt", "cmplnt_fr_tm", "cmplnt_to_dt", "cmplnt_to_tm", "addr_pct_cd", "rpt_dt", "ky_cd", "ofns_desc", "pd_cd", "pd_desc", "crm_atpt_cptd_cd", "law_cat_cd", "boro_nm", "loc_of_occur_desc", "prem_typ_desc", "juris_desc", "jurisdiction_code", "parks_nm", "hadevelopt", "housing_psa", "x_coord_cd", "y_coord_cd", "susp_age_group", "susp_race", "susp_sex", "transit_district", "latitude", "longitude", "lat_lon", "patrol_boro", "station_name", "vic_age_group", "vic_race", "vic_sex"})
+                .fieldSetMapper(new BeanWrapperFieldSetMapper<Record>() {{ //Aici se face conversia dintre csv ul luat linie cu linie
+                    setTargetType(Record.class); //Intr un Record.
+                }})
+                .linesToSkip(1) //Metoda face sa nu citeasca header ul adica linia 1.
                 .build();
     }
 
@@ -47,29 +59,17 @@ public class BatchConfiguration {
         return stepBuilderFactory.get("step1").<Record, Record>chunk(5)
                 .reader(reader()) // Aici citeste din CSV
                 .writer(writer()) // Aici il scrie in SQL
-                .build(); //
-    }
-
-
-
-    @Bean
-    public FlatFileItemReader<Record> reader() {
-        return new FlatFileItemReaderBuilder<Record>()
-                .name("recordItemReader")
-                .resource(new ClassPathResource("input.csv"))
-                .delimited()
-                .names(new String[]{"cmplnt_num", "cmplnt_fr_dt", "cmplnt_fr_tm", "cmplnt_to_dt", "cmplnt_to_tm", "addr_pct_cd", "rpt_dt", "ky_cd", "ofns_desc", "pd_cd", "pd_desc", "crm_atpt_cptd_cd", "law_cat_cd", "boro_nm", "loc_of_occur_desc", "prem_typ_desc", "juris_desc", "jurisdiction_code", "parks_nm", "hadevelopt", "housing_psa", "x_coord_cd", "y_coord_cd", "susp_age_group", "susp_race", "susp_sex", "transit_district", "latitude", "longitude", "lat_lon", "patrol_boro", "station_name", "vic_age_group", "vic_race", "vic_sex"})
-                .fieldSetMapper(new BeanWrapperFieldSetMapper<Record>() {{
-                    setTargetType(Record.class);
-                }})
-                .linesToSkip(1)
                 .build();
     }
 
     @Bean
-    public JpaItemWriter<Record> writer(){
-        JpaItemWriterBuilder<Record> builder = new JpaItemWriterBuilder();
-        builder.entityManagerFactory(emf);
-       return builder.build();
+    public Job readCSVFilesJob() {
+        return jobBuilderFactory
+                .get("readCSVFilesJob") // Acesta este numele job ului care se atribuie la fiecare rulare a aplicatiei.
+                .incrementer(new RunIdIncrementer())
+                .start(step1())
+                .build();
     }
+
+
 }

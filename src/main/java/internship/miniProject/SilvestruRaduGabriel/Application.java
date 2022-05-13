@@ -24,7 +24,7 @@ public class Application {
         SpringApplication.run(Application.class, args);
     }
 
-    @Scheduled(cron = "0 */1 * * * ?")
+    @Scheduled(cron = "0 */1 * * * ?") // Odata la fiecare minut aplicatia reincarca informatiile in baza de date.
     public void perform() throws Exception {
         JobParameters params = new JobParametersBuilder()
                 .addString("JobID", String.valueOf(System.currentTimeMillis()))
