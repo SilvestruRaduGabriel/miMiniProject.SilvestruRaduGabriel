@@ -14,6 +14,9 @@ import java.util.Date;
 @Entity
 public class Record {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Basic(optional = false)
+    @Column(name = "id",unique=true, nullable = false)
     Long cmplnt_num;
     String cmplnt_fr_dt;
     String cmplnt_fr_tm;
